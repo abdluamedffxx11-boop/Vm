@@ -2,25 +2,31 @@ import logging
 from aiogram import Bot, Dispatcher, executor, types
 import os
 
-# توكن البوت الخاص بك
+# 1. ضع توكن البوت الخاص بك هنا
 API_TOKEN = 'YOUR_BOT_TOKEN_HERE' 
 
-# الـ ID الخاص بك (تم التحديث)
+# 2. الـ ID الخاص بك (المتحكم في البوت)
 ADMIN_ID = 8369014219 
 
+# إعداد السجلات لمتابعة عمل البوت
 logging.basicConfig(level=logging.INFO)
 
+# إنشاء كائن البوت والموزع
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
 # وظيفة لحفظ الـ ID في ملف نصي
 def add_user(user_id):
-    if not os.path.exists('users.txt'):
-        with open('users.txt', 'w') as f:
+    file_path = 'users.txt'
+    if not os.path.exists(file_path):
+        with open(file_path, 'w') as f:
             f.write('')
-    with open('users.txt', 'r+') as f:
+    
+    with open(file_path, 'r') as f:
         users = f.read().splitlines()
-        if str(user_id) not in users:
+    
+    if str(user_id) not in users:
+        with open(file_path, 'a') as f:
             f.write(f"{user_id}\n")
 
 # أمر البدء
