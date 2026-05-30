@@ -1,54 +1,55 @@
+import logging
+from aiogram import Bot, Dispatcher, executor, types
 import os
-import asyncio
-import yt_dlp
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import Command
-from aiogram.types import FSInputFile
-from dotenv import load_dotenv
 
-# تحميل التوكن
-load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+# توكن البوت الخاص بك
+API_TOKEN = 'YOUR_BOT_TOKEN_HERE' 
 
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+# الـ ID الخاص بك (تم التحديث)
+ADMIN_ID = 8369014219 
 
-# إنشاء مجلد التحميل إذا لم يكن موجوداً
-if not os.path.exists("downloads"):
-    os.makedirs("downloads")
+logging.basicConfig(level=logging.INFO)
 
-async def download_video(url):
-    # إعدادات التحميل (أفضل جودة فيديو)
-    ydl_opts = {
-        'format': 'best',
-        'outtmpl': 'downloads/%(id)s.%(ext)s',
-        'noplaylist': True,
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        return f"downloads/{info['id']}.{info['ext']}"
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
 
-@dp.message(Command("start"))
+# وظيفة لحفظ الـ ID في ملف نصي
+def add_user(user_id):
+    if not os.path.exists('users.txt'):
+        with open('users.txt', 'w') as f:
+            f.write('')
+    with open('users.txt', 'r+') as f:
+        users = f.read().splitlines()
+        if str(user_id) not in users:
+            f.write(f"{user_id}\n")
+
+# أمر البدء
+@dp.message_handler(commands=['start'])
 async def start(message: types.Message):
-    await message.answer("أهلاً دراكون! أرسل لي رابط فيديو وسأقوم بتحميله لك فوراً.")
+    add_user(message.from_user.id)
+    await message.answer("أهلاً بك يا دراكون! أرسل لي رابط الفيديو وسأقوم بتحميله لك.")
 
-@dp.message(F.text.contains("http"))
-async def handle_video(message: types.Message):
-    msg = await message.answer("⏳ جاري التحميل، يرجى الانتظار...")
-    try:
-        file_path = await download_video(message.text)
-        await message.answer_video(FSInputFile(file_path))
-        await msg.delete()
-        
-        # الحذف بعد الإرسال
-        if os.path.exists(file_path):
-            os.remove(file_path)
-    except Exception as e:
-        await msg.edit_text(f"❌ حدث خطأ أثناء التحميل: {e}")
+# أمر إحصائيات للمطور (الأدمن)
+@dp.message_handler(commands=['stats'])
+async def get_stats(message: types.Message):
+    if message.from_user.id == ADMIN_ID:
+        if os.path.exists('users.txt'):
+            with open('users.txt', 'r') as f:
+                count = len(f.read().splitlines())
+            await message.answer(f"عدد المستخدمين الكلي: {count}")
+        else:
+            await message.answer("لا يوجد مستخدمون بعد.")
+    else:
+        await message.answer("عذراً، هذا الأمر مخصص للمطور فقط.")
 
-async def main():
-    await dp.start_polling(bot)
+# معالجة الروابط
+@dp.message_handler()
+async def download_video(message: types.Message):
+    if "http" in message.text:
+        await message.answer("⏳ جاري المعالجة والتحميل...")
+        # هنا ستضع كود التحميل (yt-dlp) لاحقاً
+    else:
+        await message.answer("يرجى إرسال رابط صحيح.")
 
-if __name__ == "__main__":
-    asyncio.run(main())
-
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
